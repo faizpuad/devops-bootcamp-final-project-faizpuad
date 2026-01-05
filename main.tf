@@ -34,3 +34,61 @@ module "vpc" {
     Name = "devops-ngw"
   }
 }
+
+# Web Server Security Group (Public)
+module "public_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "~> 5.0"
+
+  name        = "devops-public-sg"
+  description = "Security group for public web servers"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_with_cidr_blocks = [
+    {
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      description = "HTTP from anywhere"
+      cidr_blocks = "0.0.0.0/0"
+    },
+    {
+      from_port   = 9100
+      to_port     = 9100
+      protocol    = "tcp"
+      description = "Prometheus Node Exporter"
+      cidr_blocks = var.monitoring_server_ip
+    },
+    {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      description = "SSH from VPC only"
+      cidr_blocks = var.vpc_subnet_cidr
+    }
+  ]
+
+  egress_rules = ["all-all"]
+}
+
+# Private SG (Ansible + Monitoring)
+module "private_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "~> 5.0"
+
+  name        = "devops-private-sg"
+  description = "Security group for Ansible controller and monitoring servers"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_with_cidr_blocks = [
+    {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      description = "SSH from VPC only"
+      cidr_blocks = var.vpc_subnet_cidr
+    }
+  ]
+
+  egress_rules = ["all-all"]
+}
