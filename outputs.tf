@@ -29,3 +29,11 @@ output "ansible_private_ip" {
 output "monitoring_private_ip" {
   value = module.monitoring_server.private_ip
 }
+
+output "ecr_repository_url" {
+  value = module.ecr.repository_url
+}
+
+output "ecr_repository_arn" {
+  value = module.ecr.repository_arn
+}

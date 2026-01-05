@@ -39,3 +39,9 @@ variable "ubuntu_ami_name" {
   type        = string
   default     = "ubuntu/images/hvm-ssd/ubuntu-noble-24.04-amd64-server-*"
 }
+
+variable "ecr_repository_name" {
+  description = "ECR repository name"
+  type        = string
+}
+
