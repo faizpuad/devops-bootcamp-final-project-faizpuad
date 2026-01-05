@@ -17,3 +17,15 @@ output "public_sg_id" {
 output "private_sg_id" {
   value = module.private_sg.security_group_id
 }
+
+output "web_server_eip" {
+  value = module.web_server.public_ip
+}
+
+output "ansible_private_ip" {
+  value = module.ansible_controller.private_ip
+}
+
+output "monitoring_private_ip" {
+  value = module.monitoring_server.private_ip
+}
