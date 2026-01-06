@@ -3,6 +3,7 @@ module "web_server_role" {
   version = "~> 5.0"
 
   create_role = true
+  create_instance_profile = true
   role_name   = "web-server-role"
 
   trusted_role_services = [
@@ -14,6 +15,9 @@ module "web_server_role" {
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   ]
 
+  # Remove MFA requirement for EC2
+  role_requires_mfa = false
+
   tags = {
     Project = "devops-bootcamp"
   }
@@ -24,6 +28,7 @@ module "ansible_controller_role" {
   version = "~> 5.0"
 
   create_role = true
+  create_instance_profile = true
   role_name   = "ansible-controller-role"
 
   trusted_role_services = [
@@ -33,6 +38,9 @@ module "ansible_controller_role" {
   custom_role_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   ]
+
+  # Remove MFA requirement for EC2
+  role_requires_mfa = false
 
   tags = {
     Project = "devops-bootcamp"
@@ -44,6 +52,7 @@ module "monitoring_server_role" {
   version = "~> 5.0"
 
   create_role = true
+  create_instance_profile = true
   role_name   = "monitoring-server-role"
 
   trusted_role_services = [
@@ -53,6 +62,9 @@ module "monitoring_server_role" {
   custom_role_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   ]
+
+  # Remove MFA requirement for EC2
+  role_requires_mfa = false
 
   tags = {
     Project = "devops-bootcamp"
