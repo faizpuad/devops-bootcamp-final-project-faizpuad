@@ -30,6 +30,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
       - name: Ensure S3 backend bucket exists
         run: |
           BUCKET="${{ vars.TF_STATE_BUCKET }}"
