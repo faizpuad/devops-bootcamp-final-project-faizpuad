@@ -37,3 +37,16 @@ output "ecr_repository_url" {
 output "ecr_repository_arn" {
   value = module.ecr.repository_arn
 }
+
+output "ansible_controller_instance_id" {
+  value = module.ansible_controller.id
+}
+
+output "web_server_instance_id" {
+  value = module.web_server.id
+}
+
+output "monitoring_server_instance_id" {
+  value = module.monitoring_server.id
+}
+

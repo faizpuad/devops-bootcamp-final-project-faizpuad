@@ -114,6 +114,10 @@ module "private_sg" {
   egress_rules = ["all-all"]
 }
 
+module "iam_roles" {
+  source = "./modules/iam"
+}
+
 # ec2 web server
 module "web_server" {
   source  = "terraform-aws-modules/ec2-instance/aws"
@@ -130,6 +134,9 @@ module "web_server" {
   associate_public_ip_address = true
 
   create_eip = true
+
+  # enable ssm role
+  iam_instance_profile = module.iam_roles.web_server_instance_profile_name
 
   tags = {
     Role = "web"
@@ -151,6 +158,9 @@ module "ansible_controller" {
 
   associate_public_ip_address = false
 
+  # enable ssm role
+  iam_instance_profile = module.iam_roles.ansible_controller_instance_profile_name
+
   tags = {
     Role = "ansible"
   }
@@ -170,6 +180,9 @@ module "monitoring_server" {
   vpc_security_group_ids = [module.private_sg.security_group_id]
 
   associate_public_ip_address = false
+
+  # enable ssm role
+  iam_instance_profile =module.iam_roles.monitoring_server_instance_profile_name
 
   tags = {
     Role = "monitoring"
