@@ -138,7 +138,7 @@ jobs:
           REQUIREMENTS_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","set -e","echo === Installing AWS CLI ===","cd /tmp","curl -s https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip","sudo apt-get update -qq && sudo apt-get install -y unzip","unzip -q awscliv2.zip","sudo ./aws/install","rm -rf awscliv2.zip aws/","aws --version","echo","echo === Installing boto3 and botocore ===","pip3 install --user boto3 botocore","echo","echo === Verification ===","python3 -c \"import boto3; print(f'"'"'boto3: {boto3.__version__}'"'"')\"","python3 -c \"import botocore; print(f'"'"'botocore: {botocore.__version__}'"'"')\"","echo === Installation complete ==="]' \
+            --parameters 'commands=["#!/bin/bash","set -e","echo === Installing AWS CLI ===","cd /tmp","curl -s https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip","sudo apt-get update -qq && sudo apt-get install -y unzip","unzip -q awscliv2.zip","sudo ./aws/install","rm -rf awscliv2.zip aws/","aws --version","echo","echo === Installing pip3 if needed ===","if ! command -v pip3 &> /dev/null; then","  sudo apt-get install -y python3-pip","fi","pip3 --version","echo","echo === Installing boto3 and botocore ===","pip3 install --user boto3 botocore","echo","echo === Verification ===","python3 -c \"import boto3; print(f'"'"'boto3: {boto3.__version__}'"'"')\"","python3 -c \"import botocore; print(f'"'"'botocore: {botocore.__version__}'"'"')\"","echo === Installation complete ==="]' \
             --timeout-seconds 600 \
             --comment "Install AWS CLI, boto3, botocore" \
             --query "Command.CommandId" \

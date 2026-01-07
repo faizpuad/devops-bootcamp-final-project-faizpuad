@@ -51,14 +51,11 @@ jobs:
             fi
           fi
 
-      - name: Terraform Init
-        run: terraform init -upgrade
+      # - name: Terraform Init
+      #   run: terraform init -upgrade
 
       - name: Terraform Validate
         run: terraform validate
 
-      - name: Terraform Plan
-        run: terraform plan
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
+      # - name: Terraform Apply
+      #   run: terraform apply -auto-approve
