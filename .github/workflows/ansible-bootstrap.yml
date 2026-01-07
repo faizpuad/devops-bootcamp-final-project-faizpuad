@@ -1,0 +1,47 @@
+name: Bootstrap Ansible Controller
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  install-ansible:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get Ansible Controller Instance ID
+        id: controller
+        run: |
+          INSTANCE_ID=$(aws ssm get-parameter \
+            --name "/devops/controller/instance-id" \
+            --query "Parameter.Value" \
+            --output text)
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+
+      - name: Install Ansible on Controller via SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands=["$(sed 's/"/\\"/g' bash/install_ansible_controller.sh)"] \
+            --comment "Install Ansible if not exists"
+
+            - name: Verify Ansible installation
+            run: |
+              aws ssm send-command \
+                --instance-ids "$INSTANCE_ID" \
+                --document-name "AWS-RunShellScript" \
+                --parameters commands=["ansible --version"]
+          

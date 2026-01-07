@@ -1,0 +1,15 @@
+plugin: aws_ssm
+regions:
+  - us-east-1
+
+filters:
+  InstanceIds:
+    - "{{ lookup('aws_ssm', '/devops/web/instance-id') }}"
+    - "{{ lookup('aws_ssm', '/devops/monitoring/instance-id') }}"
+
+keyed_groups:
+  - key: tags.Role
+    prefix: role
+
+compose:
+  ansible_host: instance_id
