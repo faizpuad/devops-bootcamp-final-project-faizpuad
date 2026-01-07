@@ -1,0 +1,70 @@
+name: ECR Build and Push
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: false
+        default: 'production'
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get ECR repository URI from SSM
+        id: ecr
+        run: |
+          ECR_URI=$(aws ssm get-parameter \
+            --name "/devops/ecr/webapp-repo-uri" \
+            --query "Parameter.Value" \
+            --output text)
+          echo "ECR_URI=$ECR_URI" >> $GITHUB_ENV
+          echo "ECR repository: $ECR_URI"
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        env:
+          IMAGE_TAG_LATEST: latest
+          IMAGE_TAG_SHA: ${{ github.sha }}
+        run: |
+          echo "Building Docker image..."
+          docker build -t ${{ env.ECR_URI }}:$IMAGE_TAG_LATEST \
+            -t ${{ env.ECR_URI }}:$IMAGE_TAG_SHA \
+            docker/webapp/
+          
+          echo "Pushing images to ECR..."
+          docker push ${{ env.ECR_URI }}:$IMAGE_TAG_LATEST
+          docker push ${{ env.ECR_URI }}:$IMAGE_TAG_SHA
+          
+          echo "✅ Successfully pushed images:"
+          echo "  - ${{ env.ECR_URI }}:$IMAGE_TAG_LATEST"
+          echo "  - ${{ env.ECR_URI }}:$IMAGE_TAG_SHA"
+
+      - name: Output image details
+        run: |
+          echo "### Docker Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** \`${{ env.ECR_URI }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
