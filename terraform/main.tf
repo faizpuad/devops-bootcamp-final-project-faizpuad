@@ -223,3 +223,15 @@ module "ecr" {
   }
 }
 
+module "ssm" {
+  source = "./modules/ssm"
+
+  controller_instance_id = module.ansible_controller.id
+  web_instance_id        = module.web_server.id
+  monitoring_instance_id = module.monitoring_server.id
+  # web_private_ip         = module.ec2.web_private_ip
+  ecr_repository_url     = module.ecr.repository_url
+}
+
+
+
