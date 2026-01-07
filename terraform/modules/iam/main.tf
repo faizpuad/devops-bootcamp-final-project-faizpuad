@@ -36,7 +36,8 @@ module "ansible_controller_role" {
   ]
 
   custom_role_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
   ]
 
   # Remove MFA requirement for EC2
