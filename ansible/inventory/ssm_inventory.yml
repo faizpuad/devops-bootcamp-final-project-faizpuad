@@ -3,13 +3,16 @@ regions:
   - us-east-1
 
 filters:
-  InstanceIds:
-    - "{{ lookup('aws_ssm', '/devops/web/instance-id') }}"
-    - "{{ lookup('aws_ssm', '/devops/monitoring/instance-id') }}"
+  tag:Project:
+    - devops-bootcamp
 
 keyed_groups:
   - key: tags.Role
-    prefix: role
+    prefix: tag_Role
 
+# SSM connection configuration
 compose:
   ansible_host: instance_id
+  ansible_connection: aws_ssm
+  ansible_aws_ssm_region: us-east-1
+  ansible_python_interpreter: /usr/bin/python3

@@ -1,0 +1,61 @@
+---
+- name: Install Docker on Web Server
+  hosts: tag_Role_web
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Download Docker installation script from S3
+      ansible.builtin.command:
+        cmd: aws s3 cp s3://{{ lookup('env', 'TF_STATE_BUCKET') }}/scripts/install-docker.sh /tmp/install-docker.sh
+      become: no
+
+    - name: Make installation script executable
+      ansible.builtin.file:
+        path: /tmp/install-docker.sh
+        mode: '0755'
+
+    - name: Run Docker installation script
+      ansible.builtin.command:
+        cmd: /tmp/install-docker.sh
+      register: docker_install
+      changed_when: "'already installed' not in docker_install.stdout"
+
+    - name: Display installation output
+      ansible.builtin.debug:
+        var: docker_install.stdout_lines
+
+    - name: Download firewall configuration script from S3
+      ansible.builtin.command:
+        cmd: aws s3 cp s3://{{ lookup('env', 'TF_STATE_BUCKET') }}/scripts/configure-firewall.sh /tmp/configure-firewall.sh
+      become: no
+
+    - name: Make firewall script executable
+      ansible.builtin.file:
+        path: /tmp/configure-firewall.sh
+        mode: '0755'
+
+    - name: Configure firewall (UFW)
+      ansible.builtin.command:
+        cmd: /tmp/configure-firewall.sh
+      register: firewall_config
+
+    - name: Display firewall configuration output
+      ansible.builtin.debug:
+        var: firewall_config.stdout_lines
+
+    - name: Verify Docker is running
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Get Docker version
+      ansible.builtin.command:
+        cmd: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Display Docker version
+      ansible.builtin.debug:
+        msg: "{{ docker_version.stdout }}"
