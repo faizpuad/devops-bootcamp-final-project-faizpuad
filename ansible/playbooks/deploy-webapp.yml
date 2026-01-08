@@ -1,4 +1,3 @@
----
 - name: Deploy WebApp from ECR
   hosts: tag_Role_web
   become: yes

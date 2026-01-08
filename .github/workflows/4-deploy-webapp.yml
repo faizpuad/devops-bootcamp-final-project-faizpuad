@@ -61,7 +61,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ env.CONTROLLER_ID }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","set -e","mkdir -p /home/ssm-user/ansible/playbooks","mkdir -p /home/ssm-user/scripts","cd /home/ssm-user","aws s3 sync s3://${{ vars.TF_STATE_BUCKET }}/ansible/playbooks/ ansible/playbooks/","aws s3 sync s3://${{ vars.TF_STATE_BUCKET }}/scripts/ scripts/","chmod +x scripts/*.sh","chown -R ssm-user:ssm-user /home/ssm-user/ansible /home/ssm-user/scripts","export TF_STATE_BUCKET=${{ vars.TF_STATE_BUCKET }}","export AWS_ACCOUNT_ID=${{ env.AWS_ACCOUNT_ID }}","echo TF_STATE_BUCKET=${{ vars.TF_STATE_BUCKET }} >> /home/ssm-user/.bashrc","echo AWS_ACCOUNT_ID=${{ env.AWS_ACCOUNT_ID }} >> /home/ssm-user/.bashrc","echo Ansible files downloaded"]' \
+            --parameters 'commands=["#!/bin/bash","set -e","mkdir -p /home/ssm-user/ansible/playbooks","mkdir -p /home/ssm-user/scripts","cd /home/ssm-user","aws s3 sync s3://${{ vars.TF_STATE_BUCKET }}/ansible/playbooks/ ansible/playbooks/","aws s3 sync s3://${{ vars.TF_STATE_BUCKET }}/scripts/ scripts/","chmod +x scripts/*.sh","chown -R ssm-user: /home/ssm-user/ansible","chown -R ssm-user: /home/ssm-user/scripts","export TF_STATE_BUCKET=${{ vars.TF_STATE_BUCKET }}","export AWS_ACCOUNT_ID=${{ env.AWS_ACCOUNT_ID }}","echo TF_STATE_BUCKET=${{ vars.TF_STATE_BUCKET }} >> /home/ssm-user/.bashrc","echo AWS_ACCOUNT_ID=${{ env.AWS_ACCOUNT_ID }} >> /home/ssm-user/.bashrc","echo Ansible files downloaded"]' \
             --timeout-seconds 300 \
             --comment "Download Ansible files from S3" \
             --query "Command.CommandId" \

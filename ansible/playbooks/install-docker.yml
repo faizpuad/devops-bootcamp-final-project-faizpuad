@@ -1,4 +1,3 @@
----
 - name: Install Docker on Web Server
   hosts: tag_Role_web
   become: yes
