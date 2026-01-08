@@ -1,7 +1,18 @@
 plugin: amazon.aws.aws_ec2
 regions:
   - us-east-1
+
+filters:
+  instance-state-name:
+    - running
+
+keyed_groups:
+  - key: tags.Role
+    prefix: tag_Role
+    separator: "_"
+
 hostnames:
   - instance-id
-# This line removes the warning by renaming the tags variable
-include_extra_instance_info: yes
+
+compose:
+  ansible_host: instance_id
