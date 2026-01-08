@@ -244,7 +244,7 @@ jobs:
           SETUP_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","set -e","mkdir -p /home/ssm-user/ansible/inventory","mkdir -p /home/ssm-user/ansible/playbooks","mkdir -p /home/ssm-user/ansible/group_vars","cd /home/ssm-user","aws s3 cp s3://${{ vars.TF_STATE_BUCKET }}/ansible/inventory/ssm_inventory.aws_ec2.yml ansible/inventory/ssm_inventory.aws_ec2.yml","aws s3 cp s3://${{ vars.TF_STATE_BUCKET }}/ansible/ansible.cfg ansible/ansible.cfg","aws s3 cp s3://${{ vars.TF_STATE_BUCKET }}/ansible/group_vars/all.yml ansible/group_vars/all.yml","chown -R ssm-user:ssm-user /home/ssm-user/ansible","echo Ansible directory structure created"]' \
+            --parameters 'commands=["#!/bin/bash","set -e","echo Creating directory structure...","mkdir -p /home/ssm-user/ansible/inventory","mkdir -p /home/ssm-user/ansible/playbooks","mkdir -p /home/ssm-user/ansible/group_vars","echo Downloading files from S3...","cd /home/ssm-user","aws s3 cp s3://${{ vars.TF_STATE_BUCKET }}/ansible/inventory/ssm_inventory.aws_ec2.yml ansible/inventory/ssm_inventory.aws_ec2.yml","aws s3 cp s3://${{ vars.TF_STATE_BUCKET }}/ansible/ansible.cfg ansible/ansible.cfg","aws s3 cp s3://${{ vars.TF_STATE_BUCKET }}/ansible/group_vars/all.yml ansible/group_vars/all.yml","echo Fixing ownership...","chown -R ssm-user: /home/ssm-user/ansible","echo ✅ Ansible directory structure created"]' \
             --timeout-seconds 300 \
             --comment "Setup Ansible directory" \
             --query "Command.CommandId" \
