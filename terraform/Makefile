@@ -1,7 +1,7 @@
 .PHONY: all destroy plan init
 
 all:
-	terraform init
+	terraform init --upgrade
 	terraform apply -auto-approve
 
 destroy:
