@@ -41,9 +41,10 @@ jobs:
           # Upload all bash scripts
           aws s3 sync bash/ s3://${BUCKET}/scripts/
           
-          # Upload Ansible inventory and config
-          aws s3 cp ansible/inventory/ssm_inventory.yml s3://${BUCKET}/ansible/inventory/ssm_inventory.yml
+          # Upload Ansible inventory and config (note the new filename)
+          aws s3 cp ansible/inventory/ssm_inventory.aws_ec2.yml s3://${BUCKET}/ansible/inventory/ssm_inventory.aws_ec2.yml
           aws s3 cp ansible/ansible.cfg s3://${BUCKET}/ansible/ansible.cfg
+          aws s3 cp ansible/group_vars/all.yml s3://${BUCKET}/ansible/group_vars/all.yml
           
           echo "✅ Scripts and configs uploaded to S3"
 
@@ -289,7 +290,7 @@ jobs:
           TEST_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","set -e","cd /home/ssm-user/ansible","echo === Testing Ansible inventory ===","ansible-inventory -i inventory/ssm_inventory.yml --list","echo","echo === Testing connectivity to web server ===","ansible tag_Role_web -i inventory/ssm_inventory.yml -m ping || echo Warning: Connectivity test failed but continuing..."]' \
+            --parameters 'commands=["#!/bin/bash","set -e","cd /home/ssm-user/ansible","echo === Testing Ansible inventory ===","ansible-inventory -i inventory/ssm_inventory.aws_ec2.yml --list","echo","echo === Testing connectivity to web server ===","ansible tag_Role_web -i inventory/ssm_inventory.aws_ec2.yml -m ping || echo Warning: Connectivity test failed but continuing..."]' \
             --timeout-seconds 300 \
             --comment "Test Ansible inventory" \
             --query "Command.CommandId" \
@@ -373,7 +374,7 @@ jobs:
           echo "- SSM inventory configuration" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Configuration Files:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Inventory: \`/home/ubuntu/ansible/inventory/ssm_inventory.yml\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Inventory: \`/home/ubuntu/ansible/inventory/ssm_inventory.aws_ec2.yml\`" >> $GITHUB_STEP_SUMMARY
           echo "- Config: \`/home/ubuntu/ansible/ansible.cfg\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
