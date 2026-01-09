@@ -7,7 +7,7 @@ filters:
     - running
 
 keyed_groups:
-  - key: tags.Role
+  - key: tags['Role']
     prefix: tag_Role
     separator: "_"
 
@@ -16,6 +16,7 @@ hostnames:
 
 compose:
   ansible_host: instance_id
-  # Force SSM connection settings at the inventory level for reliability
-  ansible_connection: "'community.aws.aws_ssm'"
+  # Hardcoding these here ensures the SSM plugin never sees 'None'
+  ansible_connection: "'amazon.aws.aws_ssm'"
+  ansible_aws_ssm_bucket_name: "'ansible-ssm-transfer-686255953032-us-east-1'"
   ansible_aws_ssm_region: "'us-east-1'"
