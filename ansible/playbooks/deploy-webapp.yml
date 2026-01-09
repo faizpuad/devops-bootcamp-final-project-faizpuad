@@ -42,7 +42,7 @@
               ports:
                 - "80:80"
               restart: unless-stopped
-        dest: "{{ webapp_dir rack }}/docker-compose.yml"
+        dest: "{{ webapp_dir }}/docker-compose.yml"
         owner: ubuntu
         group: ubuntu
         mode: '0644'
