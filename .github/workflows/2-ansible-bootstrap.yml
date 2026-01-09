@@ -105,42 +105,44 @@ jobs:
 
       - name: Clone/Update Git Repo on Controller
         run: |
+          # We use a heredoc to create a clean JSON string for the commands
+          COMMANDS_JSON=$(cat <<EOF
+          [
+            "#!/bin/bash",
+            "set -e",
+            "echo 'Preparing repository...'",
+            "sudo chown ssm-user:ssm-user /home/ssm-user",
+            "cd /home/ssm-user",
+            "if [ -d devops-bootcamp/.git ]; then",
+            "  echo 'Repository exists, updating...'",
+            "  cd devops-bootcamp",
+            "  git config --global --add safe.directory /home/ssm-user/devops-bootcamp",
+            "  git fetch --all",
+            "  git reset --hard origin/main",
+            "else",
+            "  echo 'Repository directory invalid or missing, re-cloning...'",
+            "  sudo rm -rf devops-bootcamp",
+            "  git clone https://github.com/${{ github.repository }}.git devops-bootcamp",
+            "  cd devops-bootcamp",
+            "  git config --global --add safe.directory /home/ssm-user/devops-bootcamp",
+            "fi",
+            "echo '=== Repository Status ==='",
+            "git log -1 --oneline",
+            "ls -la ansible/",
+            "echo '✓ Repository ready'"
+          ]
+          EOF
+          )
+
           CLONE_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "#!/bin/bash",
-              "set -e",
-              "echo Preparing repository...",
-              
-              # Ensure the parent directory is owned by ssm-user
-              sudo chown ssm-user:ssm-user /home/ssm-user
-
-              cd /home/ssm-user
-      
-              if [ -d devops-bootcamp/.git ]; then
-                echo \"Repository exists, updating...\"
-                cd devops-bootcamp
-                git config --global --add safe.directory /home/ssm-user/devops-bootcamp
-                git fetch --all
-                git reset --hard origin/main
-              else
-                echo \"Repository directory invalid or missing, re-cloning...\"
-                # Remove the directory if it exists but is not a git repo to avoid clone conflicts
-                sudo rm -rf devops-bootcamp
-                git clone https://github.com/${{ github.repository }}.git devops-bootcamp
-                cd devops-bootcamp
-                git config --global --add safe.directory /home/ssm-user/devops-bootcamp
-              fi
-      
-              echo \"=== Repository Status ===\"
-              git log -1 --oneline
-              ls -la ansible/  # Verify the ansible folder exists now
-              echo \"✓ Repository ready\"
-            ]' \
+            --parameters "{\"commands\": $COMMANDS_JSON}" \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
-            --output text)      
+            --output text)
+          
+          echo "CLONE_CMD_ID=$CLONE_CMD" >> $GITHUB_ENV         
 
       - name: Test Ansible Inventory
         run: |
