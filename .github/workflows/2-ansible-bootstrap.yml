@@ -57,36 +57,42 @@ jobs:
             echo "installed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Install Ansible and Requirements
+      - name: Install Ansible, SSM Plugin, and Requirements
         if: steps.check_ansible.outputs.installed == 'false'
         run: |
           INSTALL_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","set -e","sudo chown ssm-user:ssm-user /home/ssm-user","sudo chown -R ssm-user:ssm-user /tmp/.ansible 2>/dev/null || true","sudo apt-get update -qq","sudo apt-get install -y software-properties-common python3-pip","sudo add-apt-repository -y ppa:ansible/ansible","sudo apt-get update -qq","sudo apt-get install -y ansible","pip3 install --break-system-packages boto3 botocore","ansible --version"]' \
+            --parameters 'commands=[
+              "#!/bin/bash",
+              "set -e",
+              "sudo chown ssm-user:ssm-user /home/ssm-user",
+              "sudo apt-get update -qq",
+              "sudo apt-get install -y software-properties-common python3-pip curl",
+              "sudo add-apt-repository -y ppa:ansible/ansible",
+              "sudo apt-get update -qq",
+              "sudo apt-get install -y ansible",
+              "echo Installing Session Manager Plugin...",
+              "curl \"https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb\" -o \"session-manager-plugin.deb\"",
+              "sudo dpkg -i session-manager-plugin.deb",
+              "rm session-manager-plugin.deb",
+              "pip3 install --break-system-packages boto3 botocore",
+              "ansible --version",
+              "session-manager-plugin --version"
+            ]' \
             --timeout-seconds 600 \
             --query "Command.CommandId" \
             --output text)
           
           for i in {1..60}; do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$INSTALL_CMD" \
-              --instance-id "$INSTANCE_ID" \
-              --query 'Status' \
-              --output text)
-            
+            STATUS=$(aws ssm get-command-invocation --command-id "$INSTALL_CMD" --instance-id "$INSTANCE_ID" --query 'Status' --output text)
             if [ "$STATUS" = "Success" ]; then
-              echo "✓ Ansible installed"
+              echo "✓ Dependencies installed"
               break
             elif [ "$STATUS" = "Failed" ]; then
-            echo "✗ Installation failed — dumping SSM logs"
-            aws ssm get-command-invocation \
-              --command-id "$INSTALL_CMD" \
-              --instance-id "$INSTANCE_ID" \
-              --query '[StandardOutputContent,StandardErrorContent]' \
-              --output text
-            exit 1
-          fi
+              aws ssm get-command-invocation --command-id "$INSTALL_CMD" --instance-id "$INSTANCE_ID" --query '[StandardOutputContent,StandardErrorContent]' --output text
+              exit 1
+            fi
             sleep 10
           done
 
@@ -96,21 +102,18 @@ jobs:
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=["ansible-galaxy collection install amazon.aws community.general"]' \
-            --timeout-seconds 300 \
             --query "Command.CommandId" \
             --output text)
           
-          sleep 20
+          sleep 15
           echo "✓ Collections installed"
 
       - name: Clone/Update Git Repo on Controller
         run: |
-          # We use a heredoc to create a clean JSON string for the commands
           COMMANDS_JSON=$(cat <<EOF
           [
             "#!/bin/bash",
             "set -e",
-            "echo 'Preparing repository...'",
             "sudo chown ssm-user:ssm-user /home/ssm-user",
             "cd /home/ssm-user",
             "if [ -d devops-bootcamp/.git ]; then",
@@ -120,16 +123,13 @@ jobs:
             "  git fetch --all",
             "  git reset --hard origin/main",
             "else",
-            "  echo 'Repository directory invalid or missing, re-cloning...'",
+            "  echo 'Repository missing, re-cloning...'",
             "  sudo rm -rf devops-bootcamp",
             "  git clone https://github.com/${{ github.repository }}.git devops-bootcamp",
             "  cd devops-bootcamp",
             "  git config --global --add safe.directory /home/ssm-user/devops-bootcamp",
             "fi",
-            "echo '=== Repository Status ==='",
-            "git log -1 --oneline",
-            "ls -la ansible/",
-            "echo '✓ Repository ready'"
+            "ls -la ansible/"
           ]
           EOF
           )
@@ -138,40 +138,38 @@ jobs:
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --parameters "{\"commands\": $COMMANDS_JSON}" \
-            --timeout-seconds 300 \
             --query "Command.CommandId" \
             --output text)
           
-          echo "CLONE_CMD_ID=$CLONE_CMD" >> $GITHUB_ENV         
+          sleep 15
+          echo "✓ Repository ready"
 
-      - name: Test Ansible Inventory
+      - name: Test Ansible Inventory (Ping)
         run: |
           TEST_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=["#!/bin/bash","cd /home/ssm-user/devops-bootcamp/ansible","ansible tag_Role_web -i inventory/ssm_inventory.aws_ec2.yml -m ping"]' \
-            --timeout-seconds 300 \
             --query "Command.CommandId" \
             --output text)
           
-          sleep 20
-          OUTPUT=$(aws ssm get-command-invocation \
-            --command-id "$TEST_CMD" \
-            --instance-id "$INSTANCE_ID" \
-            --query 'StandardOutputContent' \
-            --output text)
-          echo "$OUTPUT"
+          echo "Waiting for Ping test..."
+          for i in {1..20}; do
+            STATUS=$(aws ssm get-command-invocation --command-id "$TEST_CMD" --instance-id "$INSTANCE_ID" --query 'Status' --output text)
+            if [ "$STATUS" = "Success" ]; then
+              aws ssm get-command-invocation --command-id "$TEST_CMD" --instance-id "$INSTANCE_ID" --query 'StandardOutputContent' --output text
+              break
+            elif [ "$STATUS" = "Failed" ]; then
+              echo "✗ Ping test failed"
+              aws ssm get-command-invocation --command-id "$TEST_CMD" --instance-id "$INSTANCE_ID" --query 'StandardErrorContent' --output text
+              exit 1
+            fi
+            sleep 5
+          done
 
       - name: Bootstrap Summary
         run: |
           echo "### Ansible Controller Bootstrap Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Status:** Bootstrap Successful" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Instance ID:** \`${{ env.INSTANCE_ID }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Repository:** Cloned to \`/home/ssm-user/devops-bootcamp\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Manually trigger 'ECR Build and Push' workflow" >> $GITHUB_STEP_SUMMARY
-          echo "2. 'Deploy WebApp' will auto-trigger on successful build" >> $GITHUB_STEP_SUMMARY
+          echo "**Ansible & SSM Plugin:** Installed" >> $GITHUB_STEP_SUMMARY
