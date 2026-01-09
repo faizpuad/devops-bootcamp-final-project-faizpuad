@@ -18,6 +18,30 @@ data "aws_ami" "ubuntu_2404" {
   }
 }
 
+# Get acc and region for ansible ssm s3 bucket naming
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+locals {
+  # Convention: ansible-ssm-transfer-<account-id>-<region>
+  ssm_bucket_name = "ansible-ssm-transfer-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+}
+
+# Create the S3 Bucket for Ansible SSM File Transfer
+module "ansible_ssm_bucket" {
+  source  = "terraform-aws-modules/s3-bucket/aws"
+  version = "~> 4.0"
+
+  bucket        = local.ssm_bucket_name
+  force_destroy = true # Allows terraform destroy to remove bucket even if it has files
+
+  control_object_ownership = true
+  object_ownership         = "ObjectWriter"
+
+  versioning = {
+    enabled = false
+  }
+}
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
@@ -115,6 +139,7 @@ module "private_sg" {
 }
 
 module "iam_roles" {
+  bucket_arn = module.ansible_ssm_bucket.s3_bucket_arn
   source = "./modules/iam"
 }
 

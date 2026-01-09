@@ -1,4 +1,4 @@
-.PHONY: all destroy plan init
+.PHONY: all destroy plan init validate
 
 all:
 	terraform init --upgrade
@@ -12,3 +12,6 @@ plan:
 
 init:
 	terraform init
+
+validate:
+	terraform validate
