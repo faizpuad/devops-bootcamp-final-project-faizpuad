@@ -114,9 +114,9 @@ jobs:
       
               "echo Preparing repository...",
       
-              "sudo mkdir -p /home/ssm-user",
-              "sudo chown -R ssm-user:ssm-user /home/ssm-user",
-      
+              "sudo mkdir -p /home/ssm-user/devops-bootcamp",
+              "sudo chown -R ssm-user:ssm-user /home/ssm-user/devops-bootcamp",
+
               "echo Marking repo as safe for git",
               "git config --global --add safe.directory /home/ssm-user/devops-bootcamp",
       
