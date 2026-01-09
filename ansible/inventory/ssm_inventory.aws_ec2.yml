@@ -16,7 +16,7 @@ hostnames:
 
 compose:
   ansible_host: instance_id
-  # Hardcoding these here ensures the SSM plugin never sees 'None'
+  # Hardcoding these prevents the NoneType connection error
   ansible_connection: "'amazon.aws.aws_ssm'"
   ansible_aws_ssm_bucket_name: "'ansible-ssm-transfer-686255953032-us-east-1'"
   ansible_aws_ssm_region: "'us-east-1'"

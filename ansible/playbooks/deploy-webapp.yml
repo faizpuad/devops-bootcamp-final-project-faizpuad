@@ -19,7 +19,6 @@
   gather_facts: no
   
   vars:
-    # App-specific variables (Connection vars are now in group_vars/all.yml)
     webapp_dir: /home/ubuntu/webapp
     ecr_region: us-east-1
     ecr_uri: "{{ hostvars['localhost']['ecr_uri'] }}"
@@ -51,35 +50,18 @@
       ansible.builtin.set_fact:
         ecr_registry: "{{ ecr_uri | regex_replace('/.*', '') }}"
 
-    - name: Login to ECR
-      # We use the native community module for Docker ECR login
-      community.docker.docker_login:
-        registry_url: "{{ ecr_registry }}"
-        username: AWS
-        password: "{{ lookup('aws_ssm', 'ecr_login_token', region=ecr_region) | default(omit) }}"
-        # Alternative if the lookup is tricky:
-        reauthorize: yes
-      become: yes
-      become_user: ubuntu
-      # If the module isn't ready, your existing shell login is a fine fallback:
-      when: false 
-
-    # Fallback Login (Keeping your verified shell logic but cleaner)
-    - name: Login to ECR (Shell Fallback)
+    - name: Login to ECR and Pull Image
       ansible.builtin.shell: |
-        aws ecr get-login-password --region {{ ecr_region }} | docker login --username AWS --password-stdin {{ ecr_registry }}
-      become: yes
-      become_user: ubuntu
+        aws ecr get-login-password --region {{ ecr_region }} | sudo -u ubuntu docker login --username AWS --password-stdin {{ ecr_registry }}
+        sudo -u ubuntu docker compose -f {{ webapp_dir }}/docker-compose.yml pull
       changed_when: true
 
-    - name: Pull and Deploy with Docker Compose
-      # Uses the modern Docker Compose V2 module
-      community.docker.docker_compose_v2:
-        project_src: "{{ webapp_dir }}"
-        state: present
-        pull: always
-      become: yes
-      become_user: ubuntu
+    - name: Deployment (Down and Up)
+      ansible.builtin.shell: |
+        cd {{ webapp_dir }}
+        sudo -u ubuntu docker compose down --remove-orphans
+        sudo -u ubuntu docker compose up -d
+      changed_when: true
 
     - name: Wait for container to be healthy
       ansible.builtin.wait_for:
