@@ -1,13 +1,11 @@
-# Connection settings for all hosts
+---
+# Connection settings
 ansible_connection: community.aws.aws_ssm
 ansible_aws_ssm_region: us-east-1
-ansible_aws_ssm_bucket_name: "devops-ansible-transfer-{{ lookup('pipe', 'aws sts get-caller-identity --query Account --output text') }}"
+ansible_aws_ssm_bucket_name: devops-ansible-transfer-686255953032
 ansible_user: ubuntu
 ansible_python_interpreter: /usr/bin/python3
 
-# Environment variables
-TF_STATE_BUCKET: "{{ lookup('env', 'TF_STATE_BUCKET') }}"
-
-# These two lines solve the "Permission Denied" mkdir error
+# Temp directories
 remote_tmp: /tmp/.ansible/tmp
-local_tmp:  /tmp/.ansible/tmp
+local_tmp: /tmp/.ansible/tmp

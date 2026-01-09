@@ -1,60 +1,84 @@
+---
 - name: Install Docker on Web Server
   hosts: tag_Role_web
   become: yes
-  gather_facts: yes
+  gather_facts: no
 
   tasks:
-    - name: Download Docker installation script from S3
-      ansible.builtin.command:
-        cmd: aws s3 cp s3://{{ lookup('env', 'TF_STATE_BUCKET') }}/scripts/install-docker.sh /tmp/install-docker.sh
-      become: no
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
 
-    - name: Make installation script executable
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+
+    - name: Create keyrings directory
       ansible.builtin.file:
-        path: /tmp/install-docker.sh
+        path: /etc/apt/keyrings
+        state: directory
         mode: '0755'
 
-    - name: Run Docker installation script
-      ansible.builtin.command:
-        cmd: /tmp/install-docker.sh
-      register: docker_install
-      changed_when: "'already installed' not in docker_install.stdout"
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
 
-    - name: Display installation output
-      ansible.builtin.debug:
-        var: docker_install.stdout_lines
+    - name: Get Ubuntu release
+      ansible.builtin.command: lsb_release -cs
+      register: ubuntu_release
+      changed_when: false
 
-    - name: Download firewall configuration script from S3
-      ansible.builtin.command:
-        cmd: aws s3 cp s3://{{ lookup('env', 'TF_STATE_BUCKET') }}/scripts/configure-firewall.sh /tmp/configure-firewall.sh
-      become: no
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ubuntu_release.stdout }} stable"
+        state: present
 
-    - name: Make firewall script executable
-      ansible.builtin.file:
-        path: /tmp/configure-firewall.sh
-        mode: '0755'
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
 
-    - name: Configure firewall (UFW)
-      ansible.builtin.command:
-        cmd: /tmp/configure-firewall.sh
-      register: firewall_config
-
-    - name: Display firewall configuration output
-      ansible.builtin.debug:
-        var: firewall_config.stdout_lines
-
-    - name: Verify Docker is running
+    - name: Start and enable Docker
       ansible.builtin.systemd:
         name: docker
         state: started
         enabled: yes
 
-    - name: Get Docker version
-      ansible.builtin.command:
-        cmd: docker --version
-      register: docker_version
-      changed_when: false
+    - name: Add ubuntu user to docker group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
 
-    - name: Display Docker version
-      ansible.builtin.debug:
-        msg: "{{ docker_version.stdout }}"
+    - name: Configure UFW - Allow SSH
+      community.general.ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: Configure UFW - Allow HTTP
+      community.general.ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+
+    - name: Configure UFW - Allow HTTPS
+      community.general.ufw:
+        rule: allow
+        port: '443'
+        proto: tcp
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
