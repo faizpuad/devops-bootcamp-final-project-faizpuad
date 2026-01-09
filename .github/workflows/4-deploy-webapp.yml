@@ -32,94 +32,56 @@ jobs:
             --query "Parameter.Value" \
             --output text)
           echo "CONTROLLER_ID=$CONTROLLER_ID" >> $GITHUB_ENV
-          echo "Ansible Controller: $CONTROLLER_ID"
 
       - name: Update Repository on Controller
         run: |
+          # We use sudo -u ssm-user to maintain correct file ownership
           UPDATE_CMD=$(aws ssm send-command \
             --instance-ids "$CONTROLLER_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","cd /home/ssm-user/devops-bootcamp","git pull","echo ✓ Repository updated"]' \
-            --timeout-seconds 60 \
+            --parameters 'commands=[
+              "#!/bin/bash",
+              "sudo chown -R ssm-user:ssm-user /home/ssm-user/devops-bootcamp",
+              "sudo -u ssm-user bash -c \"cd /home/ssm-user/devops-bootcamp && git config --global --add safe.directory /home/ssm-user/devops-bootcamp && git fetch --all && git reset --hard origin/main\"",
+              "echo ✓ Repository updated and reset to main"
+            ]' \
             --query "Command.CommandId" \
             --output text)
           
           sleep 10
-          echo "✓ Repository updated"
+          echo "✓ Sync command sent"
 
-      - name: Run Install Docker Playbook
+      - name: Run Ansible Playbooks (Docker & WebApp)
         run: |
-          DOCKER_CMD=$(aws ssm send-command \
-            --instance-ids "$CONTROLLER_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","cd /home/ssm-user/devops-bootcamp/ansible","ansible-playbook -i inventory/ssm_inventory.aws_ec2.yml playbooks/install-docker.yml"]' \
-            --timeout-seconds 600 \
-            --query "Command.CommandId" \
-            --output text)
-          
-          echo "Docker Install Command ID: $DOCKER_CMD"
-          
-          for i in {1..60}; do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$DOCKER_CMD" \
-              --instance-id "$CONTROLLER_ID" \
-              --query 'Status' \
-              --output text 2>/dev/null || echo "Pending")
-            
-            echo "Check $i/60 - Status: $STATUS"
-            
-            if [ "$STATUS" = "Success" ]; then
-              echo "✓ Docker installed"
-              aws ssm get-command-invocation \
-                --command-id "$DOCKER_CMD" \
-                --instance-id "$CONTROLLER_ID" \
-                --query 'StandardOutputContent' \
-                --output text
-              break
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "✗ Docker installation failed"
-              aws ssm get-command-invocation \
-                --command-id "$DOCKER_CMD" \
-                --instance-id "$CONTROLLER_ID"
-              exit 1
-            fi
-            sleep 10
-          done
-
-      - name: Run Deploy WebApp Playbook
-        run: |
+          # Combined into one step for cleaner logs; running as ssm-user is critical
           DEPLOY_CMD=$(aws ssm send-command \
             --instance-ids "$CONTROLLER_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","cd /home/ssm-user/devops-bootcamp/ansible","ansible-playbook -i inventory/ssm_inventory.aws_ec2.yml playbooks/deploy-webapp.yml"]' \
-            --timeout-seconds 600 \
+            --parameters 'commands=[
+              "#!/bin/bash",
+              "set -e",
+              "sudo -u ssm-user bash -c \"cd /home/ssm-user/devops-bootcamp/ansible && ansible-playbook playbooks/install-docker.yml && ansible-playbook playbooks/deploy-webapp.yml\""
+            ]' \
+            --timeout-seconds 900 \
             --query "Command.CommandId" \
             --output text)
           
-          echo "Deploy Command ID: $DEPLOY_CMD"
+          echo "Command ID: $DEPLOY_CMD"
           
-          for i in {1..60}; do
+          for i in {1..90}; do
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$DEPLOY_CMD" \
               --instance-id "$CONTROLLER_ID" \
-              --query 'Status' \
+              --query "Status" \
               --output text 2>/dev/null || echo "Pending")
             
-            echo "Check $i/60 - Status: $STATUS"
-            
             if [ "$STATUS" = "Success" ]; then
-              echo "✓ WebApp deployed"
-              aws ssm get-command-invocation \
-                --command-id "$DEPLOY_CMD" \
-                --instance-id "$CONTROLLER_ID" \
-                --query 'StandardOutputContent' \
-                --output text
+              echo "✅ Deployment Successful"
+              aws ssm get-command-invocation --command-id "$DEPLOY_CMD" --instance-id "$CONTROLLER_ID" --query "StandardOutputContent" --output text
               break
             elif [ "$STATUS" = "Failed" ]; then
-              echo "✗ Deployment failed"
-              aws ssm get-command-invocation \
-                --command-id "$DEPLOY_CMD" \
-                --instance-id "$CONTROLLER_ID"
+              echo "❌ Deployment Failed"
+              aws ssm get-command-invocation --command-id "$DEPLOY_CMD" --instance-id "$CONTROLLER_ID" --query "StandardErrorContent" --output text
               exit 1
             fi
             sleep 10
@@ -127,12 +89,6 @@ jobs:
 
       - name: Deployment Summary
         run: |
-          echo "### Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Status:** Deployment Successful" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Ansible Controller:** \`${{ env.CONTROLLER_ID }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Playbooks Executed:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Install Docker on web server" >> $GITHUB_STEP_SUMMARY
-          echo "2. Deploy WebApp from ECR" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Status:** Success" >> $GITHUB_STEP_SUMMARY
+          echo "**Target:** Web Server via Ansible Controller" >> $GITHUB_STEP_SUMMARY

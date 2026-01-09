@@ -2,12 +2,13 @@
 # Connection settings
 ansible_connection: community.aws.aws_ssm
 ansible_aws_ssm_region: us-east-1
-# ansible_aws_ssm_bucket_name: devops-ansible-transfer-686255953032  
-# Optional - only needed for large file transfers
-# utilize default ssm bucket ansible-ssm-transfer-<account-id>-region
+# Replace with your actual bucket name to prevent NoneType discovery errors
+ansible_aws_ssm_bucket_name: "ansible-ssm-transfer-686255953032-us-east-1"
+
 ansible_user: ubuntu
 ansible_python_interpreter: /usr/bin/python3
 
-# Temp directories
+# Environment & Temp Directories
+TF_STATE_BUCKET: "terraform-state-devops-bootcamp-faizpuad"
 remote_tmp: /tmp/.ansible/tmp
 local_tmp: /tmp/.ansible/tmp

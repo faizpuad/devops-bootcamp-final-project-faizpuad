@@ -19,12 +19,7 @@
   gather_facts: no
   
   vars:
-    ansible_connection: community.aws.aws_ssm
-    ansible_aws_ssm_region: us-east-1
-    # ansible_aws_ssm_bucket_name: devops-ansible-transfer-686255953032 # utilize default ssm bucket ansible-ssm-transfer-<account-id>-region
-    ansible_user: ubuntu
-    ansible_python_interpreter: /usr/bin/python3
-    ansible_remote_tmp: /tmp/.ansible/tmp
+    # App-specific variables (Connection vars are now in group_vars/all.yml)
     webapp_dir: /home/ubuntu/webapp
     ecr_region: us-east-1
     ecr_uri: "{{ hostvars['localhost']['ecr_uri'] }}"
@@ -38,16 +33,16 @@
         group: ubuntu
         mode: '0755'
 
-    - name: Copy docker-compose file
+    - name: Create docker-compose file
       ansible.builtin.copy:
         content: |
           services:
             webapp:
-              image: {{ ecr_uri }}:latest
+              image: "{{ ecr_uri }}:latest"
               ports:
                 - "80:80"
               restart: unless-stopped
-        dest: "{{ webapp_dir }}/docker-compose.yml"
+        dest: "{{ webapp_dir rack }}/docker-compose.yml"
         owner: ubuntu
         group: ubuntu
         mode: '0644'
@@ -56,35 +51,47 @@
       ansible.builtin.set_fact:
         ecr_registry: "{{ ecr_uri | regex_replace('/.*', '') }}"
 
-    - name: Login to ECR as ubuntu user
-      ansible.builtin.shell: |
-        rm -rf /home/ubuntu/.docker
-        mkdir -p /home/ubuntu/.docker
-        chown ubuntu:ubuntu /home/ubuntu/.docker
-        chmod 700 /home/ubuntu/.docker
-        su - ubuntu -c "aws ecr get-login-password --region {{ ecr_region }} | docker login --username AWS --password-stdin {{ ecr_registry }}"
+    - name: Login to ECR
+      # We use the native community module for Docker ECR login
+      community.docker.docker_login:
+        registry_url: "{{ ecr_registry }}"
+        username: AWS
+        password: "{{ lookup('aws_ssm', 'ecr_login_token', region=ecr_region) | default(omit) }}"
+        # Alternative if the lookup is tricky:
+        reauthorize: yes
       become: yes
-      environment:
-        AWS_DEFAULT_REGION: "{{ ecr_region }}"
+      become_user: ubuntu
+      # If the module isn't ready, your existing shell login is a fine fallback:
+      when: false 
+
+    # Fallback Login (Keeping your verified shell logic but cleaner)
+    - name: Login to ECR (Shell Fallback)
+      ansible.builtin.shell: |
+        aws ecr get-login-password --region {{ ecr_region }} | docker login --username AWS --password-stdin {{ ecr_registry }}
+      become: yes
+      become_user: ubuntu
       changed_when: true
 
-    - name: Pull, Down, and Up using Docker Compose
-      ansible.builtin.shell: |
-        su - ubuntu -c "cd {{ webapp_dir }} && docker compose pull && docker compose down --remove-orphans && docker compose up -d"
+    - name: Pull and Deploy with Docker Compose
+      # Uses the modern Docker Compose V2 module
+      community.docker.docker_compose_v2:
+        project_src: "{{ webapp_dir }}"
+        state: present
+        pull: always
       become: yes
-      changed_when: true
+      become_user: ubuntu
 
     - name: Wait for container to be healthy
       ansible.builtin.wait_for:
         port: 80
+        host: localhost
         delay: 5
         timeout: 30
 
     - name: Show running containers
-      ansible.builtin.shell: |
-        su - ubuntu -c "docker ps"
-      become: yes
+      ansible.builtin.command: docker ps
       register: docker_ps
+      changed_when: false
 
     - name: Display running containers
       ansible.builtin.debug:
