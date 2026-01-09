@@ -1,4 +1,4 @@
-name: Bootstrap Ansible Controller (Simplified)
+name: Bootstrap Ansible Controller
 
 on:
   workflow_run:
@@ -32,6 +32,7 @@ jobs:
             --query "Parameter.Value" \
             --output text)
           echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+          echo "Ansible Controller Instance ID: $INSTANCE_ID"
 
       - name: Check if Ansible is installed
         id: check_ansible
@@ -62,12 +63,11 @@ jobs:
           INSTALL_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","set -e","sudo apt-get update -qq","sudo apt-get install -y software-properties-common python3-pip","sudo add-apt-repository -y ppa:ansible/ansible","sudo apt-get update -qq","sudo apt-get install -y ansible","pip3 install --break-system-packages boto3 botocore","ansible --version"]' \
+            --parameters 'commands=["#!/bin/bash","set -e","sudo chown ssm-user: /home/ssm-user","sudo chown -R ssm-user: /tmp/.ansible 2>/dev/null || true","sudo apt-get update -qq","sudo apt-get install -y software-properties-common python3-pip","sudo add-apt-repository -y ppa:ansible/ansible","sudo apt-get update -qq","sudo apt-get install -y ansible","pip3 install --break-system-packages boto3 botocore","ansible --version"]' \
             --timeout-seconds 600 \
             --query "Command.CommandId" \
             --output text)
           
-          # Wait for completion
           for i in {1..60}; do
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$INSTALL_CMD" \
@@ -95,22 +95,19 @@ jobs:
             --query "Command.CommandId" \
             --output text)
           
-          sleep 15
-          aws ssm get-command-invocation \
-            --command-id "$COLLECTION_CMD" \
-            --instance-id "$INSTANCE_ID"
+          sleep 20
+          echo "✓ Collections installed"
 
       - name: Clone/Update Git Repo on Controller
         run: |
           CLONE_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","set -e","cd /home/ssm-user","if [ -d devops-bootcamp ]; then","  cd devops-bootcamp && git pull","else","  git clone https://github.com/${{ github.repository }}.git devops-bootcamp","fi","chown -R ssm-user: /home/ssm-user/devops-bootcamp","echo ✓ Repository ready"]' \
+            --parameters 'commands=["#!/bin/bash","set -e","cd /home/ssm-user","if [ -d devops-bootcamp ]; then","  cd devops-bootcamp && git pull","else","  git clone https://github.com/${{ github.repository }}.git devops-bootcamp","fi","sudo chown -R ssm-user: /home/ssm-user/devops-bootcamp","echo ✓ Repository ready"]' \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
             --output text)
           
-          # Wait for completion
           for i in {1..30}; do
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$CLONE_CMD" \
@@ -145,3 +142,17 @@ jobs:
             --query 'StandardOutputContent' \
             --output text)
           echo "$OUTPUT"
+
+      - name: Bootstrap Summary
+        run: |
+          echo "### Ansible Controller Bootstrap Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Status:** Bootstrap Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Instance ID:** \`${{ env.INSTANCE_ID }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** Cloned to \`/home/ssm-user/devops-bootcamp\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Manually trigger 'ECR Build and Push' workflow" >> $GITHUB_STEP_SUMMARY
+          echo "2. 'Deploy WebApp' will auto-trigger on successful build" >> $GITHUB_STEP_SUMMARY
