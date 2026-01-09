@@ -145,7 +145,7 @@ jobs:
           TEST_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["#!/bin/bash","cd /home/ssm-user/devops-bootcamp/ansible","ansible-inventory -i inventory/ssm_inventory.aws_ec2.yml --graph","ansible tag_Role_web -i inventory/ssm_inventory.aws_ec2.yml -m ping"]' \
+            --parameters 'commands=["#!/bin/bash","cd /home/ssm-user/devops-bootcamp/ansible","ansible tag_Role_web -i inventory/ssm_inventory.aws_ec2.yml -m ping"]' \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
             --output text)
