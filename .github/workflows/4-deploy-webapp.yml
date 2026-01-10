@@ -30,41 +30,46 @@ jobs:
 
       - name: Update Repo and Run Playbooks
         run: |
-          # 1. Create a local temporary script to avoid quoting issues
-          cat << 'EOF' > deploy_script.sh
+          # 1. Define the script as a variable to keep it clean
+          # Using single quotes around 'EOF' prevents local expansion
+          SCRIPT=$(cat << 'EOF'
           #!/bin/bash
           set -e
+          echo "Starting deployment for ${{ vars.WEB_DOMAIN }}..."
+          
           cd /home/ssm-user/devops-bootcamp
           sudo chown -R ssm-user:ssm-user .
-          sudo -u ssm-user git fetch --all
-          sudo -u ssm-user git reset --hard origin/main
-          cd ansible
-          sudo -u ssm-user ansible-playbook playbooks/deploy-webapp.yml \
-            -e "web_domain=${{ vars.WEB_DOMAIN }}" \
-            -e "app_user_name='${{ vars.APP_USER_NAME }}'"
-          EOF
-
-          # 2. Send the script content as a single command block
-          # We use jq to safely encode the script into the JSON parameter
-          SCRIPT_CONTENT=$(cat deploy_script.sh)
           
+          # Use -l to ensure the full environment (including paths) is loaded
+          sudo -u ssm-user bash -l -c "
+            cd ansible && \
+            git fetch --all && \
+            git reset --hard origin/main && \
+            ansible-playbook playbooks/deploy-webapp.yml \
+              -e 'web_domain=${{ vars.WEB_DOMAIN }}' \
+              -e 'app_user_name=\"${{ vars.APP_USER_NAME }}\"'
+          "
+          EOF
+          )
+
+          # 2. Send via SSM using a simple quoted string
           DEPLOY_CMD=$(aws ssm send-command \
             --instance-ids "${{ env.CONTROLLER_ID }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[$(echo "$SCRIPT_CONTENT" | jq -R . | jq -s 'join(",")')]" \
+            --parameters "commands=[$(echo "$SCRIPT" | jq -Rs .)]" \
             --timeout-seconds 900 \
             --query "Command.CommandId" \
             --output text)
           
-          echo "Waiting for deployment..."
+          echo "Waiting for deployment ID: $DEPLOY_CMD"
           for i in {1..90}; do
             STATUS=$(aws ssm get-command-invocation --command-id "$DEPLOY_CMD" --instance-id "${{ env.CONTROLLER_ID }}" --query "Status" --output text)
             if [ "$STATUS" = "Success" ]; then
               echo "✅ Success!"
               aws ssm get-command-invocation --command-id "$DEPLOY_CMD" --instance-id "${{ env.CONTROLLER_ID }}" --query "StandardOutputContent" --output text
               break
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "❌ Failed!"
+            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
+              echo "❌ Deployment $STATUS"
               aws ssm get-command-invocation --command-id "$DEPLOY_CMD" --instance-id "${{ env.CONTROLLER_ID }}" --query "StandardErrorContent" --output text
               exit 1
             fi
