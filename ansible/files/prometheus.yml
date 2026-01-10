@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'monitoring-server'
+
+  - job_name: 'node-exporter-web'
+    static_configs:
+      - targets: ['10.0.0.5:9100']
+        labels:
+          instance: 'web-server'
+          environment: 'production'
+
+  - job_name: 'node-exporter-monitoring'
+    static_configs:
+      - targets: ['localhost:9100']
+        labels:
+          instance: 'monitoring-server'
+          environment: 'production'

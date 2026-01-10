@@ -1,0 +1,52 @@
+---
+- name: Setup Cloudflare Tunnel for Monitoring
+  hosts: tag_Role_monitoring
+  become: yes
+  gather_facts: no
+
+  vars:
+    cloudflared_dir: /home/ubuntu/cloudflared
+    tunnel_name: "devops-monitoring-tunnel"
+    cloudflare_tunnel_token: "{{ lookup('env', 'CLOUDFLARE_TUNNEL_TOKEN') }}"
+
+  tasks:
+    - name: Create cloudflared directory
+      ansible.builtin.file:
+        path: "{{ cloudflared_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Create docker-compose for cloudflared
+      ansible.builtin.copy:
+        content: |
+          services:
+            cloudflared:
+              image: cloudflare/cloudflared:latest
+              container_name: cloudflared
+              restart: unless-stopped
+              command: tunnel --no-autoupdate run --token {{ cloudflare_tunnel_token }}
+              network_mode: host
+        dest: "{{ cloudflared_dir }}/docker-compose.yml"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0600'
+      when: cloudflare_tunnel_token | length > 0
+
+    - name: Deploy Cloudflare Tunnel
+      ansible.builtin.shell: |
+        cd {{ cloudflared_dir }}
+        docker compose down --remove-orphans 2>/dev/null || true
+        docker compose up -d
+      changed_when: true
+      when: cloudflare_tunnel_token | length > 0
+
+    - name: Show cloudflared container status
+      ansible.builtin.command: docker ps -f name=cloudflared
+      register: cloudflared_status
+      changed_when: false
+
+    - name: Display cloudflared status
+      ansible.builtin.debug:
+        var: cloudflared_status.stdout_lines

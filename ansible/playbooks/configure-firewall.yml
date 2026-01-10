@@ -1,0 +1,52 @@
+---
+- name: Configure Firewall for Web Server
+  hosts: tag_Role_web
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Allow web server ports
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - '22'
+        - '80'
+        - '443'
+        - '9100'
+
+    - name: Allow outgoing traffic
+      community.general.ufw:
+        direction: outgoing
+        policy: allow
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+
+- name: Configure Firewall for Monitoring Server
+  hosts: tag_Role_monitoring
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Allow monitoring server ports
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - '22'
+        - '3000'
+        - '9090'
+        - '9100'
+
+    - name: Allow outgoing traffic
+      community.general.ufw:
+        direction: outgoing
+        policy: allow
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled

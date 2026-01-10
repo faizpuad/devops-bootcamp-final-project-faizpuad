@@ -1,8 +1,8 @@
 ---
-- name: Install Docker on Web Server
-  hosts: tag_Role_web
+- name: Install Docker on Target Servers
+  hosts: "{{ target_hosts | default('tag_Role_web:tag_Role_monitoring') }}"
   become: yes
-  gather_facts: yes  # Enable this to get ansible_distribution_release automatically
+  gather_facts: yes
 
   tasks:
     - name: Update apt cache
@@ -21,12 +21,11 @@
         state: present
 
     - name: Install Docker SDK for Python
-      # Required for Ansible docker_container and docker_compose modules
       ansible.builtin.pip:
         name: docker
         break_system_packages: yes
 
-    - name: Install AWS CLI (using simplified block)
+    - name: Install AWS CLI
       block:
         - name: Check AWS CLI
           ansible.builtin.command: aws --version
@@ -44,7 +43,7 @@
             rm -rf awscliv2.zip aws
           changed_when: true
 
-    - name: Setup Docker Repo (Modern Way)
+    - name: Setup Docker Repository
       block:
         - name: Create keyrings directory
           ansible.builtin.file:
@@ -84,21 +83,3 @@
         name: ubuntu
         groups: docker
         append: yes
-
-    - name: Configure Firewall (UFW)
-      block:
-        - name: Allow standard ports
-          community.general.ufw:
-            rule: allow
-            port: "{{ item }}"
-            proto: tcp
-          loop: ['22', '80', '443']
-
-        - name: Ensure UFW allows outgoing traffic (Required for SSM)
-          community.general.ufw:
-            direction: outgoing
-            policy: allow
-
-        - name: Enable UFW
-          community.general.ufw:
-            state: enabled
