@@ -11,7 +11,7 @@ plan:
 	terraform plan
 
 init:
-	terraform init
+	terraform init --upgrade
 
 validate:
 	terraform validate

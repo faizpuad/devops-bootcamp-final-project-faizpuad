@@ -5,3 +5,8 @@
 .tfstate.backup
 .terraform/
 temp/
+.DS_Store
+.claude/
+PLAYBOOK.md
+README.md
+thoughts/
