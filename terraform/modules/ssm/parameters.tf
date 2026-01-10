@@ -48,3 +48,25 @@ resource "aws_ssm_parameter" "ecr_repository_url" {
     Project = "devops-bootcamp"
   }
 }
+
+data "aws_region" "current" {}
+
+resource "aws_ssm_parameter" "aws_region" {
+  name  = "/devops/aws-region"
+  type  = "String"
+  value = data.aws_region.current.name
+
+  tags = {
+    Project = "devops-bootcamp"
+  }
+}
+
+resource "aws_ssm_parameter" "ssm_bucket_name" {
+  name  = "/devops/ssm-bucket-name"
+  type  = "String"
+  value = var.ssm_bucket_name
+
+  tags = {
+    Project = "devops-bootcamp"
+  }
+}

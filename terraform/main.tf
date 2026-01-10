@@ -33,13 +33,32 @@ module "ansible_ssm_bucket" {
   version = "~> 4.0"
 
   bucket        = local.ssm_bucket_name
-  force_destroy = true # Allows terraform destroy to remove bucket even if it has files
+  force_destroy = true
 
   control_object_ownership = true
   object_ownership         = "ObjectWriter"
 
   versioning = {
     enabled = false
+  }
+
+  # Server-side encryption
+  server_side_encryption_configuration = {
+    rule = {
+      apply_server_side_encryption_by_default = {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  # Block all public access
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+
+  tags = {
+    Project = "devops-bootcamp"
   }
 }
 
@@ -50,7 +69,7 @@ module "vpc" {
   name = "devops-vpc"
   cidr = var.vpc_cidr
 
-  azs             = ["us-east-1a"]
+  azs             = ["${var.aws_region}a"]
   public_subnets  = var.public_subnets
   private_subnets = var.private_subnets
 
@@ -261,8 +280,8 @@ module "ssm" {
   controller_instance_id = module.ansible_controller.id
   web_instance_id        = module.web_server.id
   monitoring_instance_id = module.monitoring_server.id
-  # web_private_ip         = module.ec2.web_private_ip
   ecr_repository_url     = module.ecr.repository_url
+  ssm_bucket_name        = local.ssm_bucket_name
 }
 
 

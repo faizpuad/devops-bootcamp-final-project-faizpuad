@@ -1,6 +1,7 @@
 variable "aws_region" {
-  type    = string
-  default = "us-east-1"
+  description = "AWS region for deployment"
+  type        = string
+  # No default - must be provided via TF_VAR_aws_region
 }
 
 variable "vpc_cidr" {

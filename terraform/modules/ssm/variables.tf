@@ -23,3 +23,8 @@ variable "ecr_repository_url" {
   description = "ECR repository URI for web application"
   type        = string
 }
+
+variable "ssm_bucket_name" {
+  description = "SSM transfer bucket name"
+  type        = string
+}

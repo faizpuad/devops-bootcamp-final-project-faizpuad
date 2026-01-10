@@ -7,14 +7,8 @@ terraform {
       version = "~> 5.0"
     }
   }
-
-  backend "s3" {
-    bucket = "devops-bootcamp-terraform-faizpuad"
-    key    = "terraform.tfstate"
-    region = "us-east-1"
-  }
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
