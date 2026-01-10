@@ -1,6 +1,6 @@
 plugin: amazon.aws.aws_ec2
 regions:
-  - us-east-1
+  - "{{ lookup('env', 'AWS_REGION') | default('us-east-1', true) }}"
 
 filters:
   instance-state-name:
@@ -16,7 +16,4 @@ hostnames:
 
 compose:
   ansible_host: instance_id
-  # Hardcoding these prevents the NoneType connection error
   ansible_connection: "'amazon.aws.aws_ssm'"
-  ansible_aws_ssm_bucket_name: "'ansible-ssm-transfer-686255953032-us-east-1'"
-  ansible_aws_ssm_region: "'us-east-1'"

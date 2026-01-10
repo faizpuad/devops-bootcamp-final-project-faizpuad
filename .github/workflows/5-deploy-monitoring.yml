@@ -10,7 +10,7 @@ on:
         type: boolean
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: ${{ vars.AWS_REGION }}
 
 jobs:
   deploy-monitoring:
