@@ -60,21 +60,33 @@ jobs:
             --parameters 'commands=[
               "#!/bin/bash",
               "set -e",
+              
+              "echo Ensuring ssm-user exists...",
+              "if ! id -u ssm-user > /dev/null 2>&1; then",
+              "  useradd -m -s /bin/bash ssm-user",
+              "  echo ssm-user created",
+              "fi",
+
               "cd /tmp",
               "sudo apt-get update -qq",
               "sudo apt-get install -y software-properties-common python3-pip curl unzip",
               "sudo add-apt-repository -y ppa:ansible/ansible",
               "sudo apt-get update -qq",
               "sudo apt-get install -y ansible",
+              
               "echo Installing AWS CLI v2...",
               "curl -s \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\"",
               "unzip -q awscliv2.zip && sudo ./aws/install --update && rm -rf awscliv2.zip aws",
+              
               "echo Installing Session Manager Plugin...",
               "curl -s \"https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb\" -o \"ssm-plugin.deb\"",
               "sudo dpkg -i ssm-plugin.deb && rm ssm-plugin.deb",
+              
               "pip3 install --break-system-packages boto3 botocore",
+              
               "sudo mkdir -p /tmp/.ansible/tmp",
               "sudo chown -R ssm-user:ssm-user /tmp/.ansible",
+              
               "ansible --version",
               "aws --version",
               "session-manager-plugin --version"
