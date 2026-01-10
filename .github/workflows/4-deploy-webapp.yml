@@ -30,17 +30,28 @@ jobs:
 
       - name: Update Repo and Run Playbooks
         run: |
-          run: |
+          # 1. Create a local temporary script to avoid quoting issues
+          cat << 'EOF' > deploy_script.sh
+          #!/bin/bash
+          set -e
+          cd /home/ssm-user/devops-bootcamp
+          sudo chown -R ssm-user:ssm-user .
+          sudo -u ssm-user git fetch --all
+          sudo -u ssm-user git reset --hard origin/main
+          cd ansible
+          sudo -u ssm-user ansible-playbook playbooks/deploy-webapp.yml \
+            -e "web_domain=${{ vars.WEB_DOMAIN }}" \
+            -e "app_user_name='${{ vars.APP_USER_NAME }}'"
+          EOF
+
+          # 2. Send the script content as a single command block
+          # We use jq to safely encode the script into the JSON parameter
+          SCRIPT_CONTENT=$(cat deploy_script.sh)
+          
           DEPLOY_CMD=$(aws ssm send-command \
             --instance-ids "${{ env.CONTROLLER_ID }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "#!/bin/bash",
-              "export G_DOMAIN=\"${{ vars.WEB_DOMAIN }}\"",
-              "export G_USER=\"${{ vars.APP_USER_NAME }}\"",
-              "sudo -u ssm-user bash -l -c \"cd /home/ssm-user/devops-bootcamp/ansible && \
-                ansible-playbook playbooks/deploy-webapp.yml -e web_domain=$G_DOMAIN -e app_user_name='\"'\"$G_USER\"'\"'\""
-            ]' \
+            --parameters "commands=[$(echo "$SCRIPT_CONTENT" | jq -R . | jq -s 'join(",")')]" \
             --timeout-seconds 900 \
             --query "Command.CommandId" \
             --output text)
