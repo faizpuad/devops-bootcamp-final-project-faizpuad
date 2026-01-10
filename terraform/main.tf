@@ -98,6 +98,13 @@ module "public_sg" {
       cidr_blocks = "0.0.0.0/0"
     },
     {
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      description = "HTTPS from anywhere (Required for Cloudflare Full SSL)"
+      cidr_blocks = "0.0.0.0/0"
+    },
+    {
       from_port   = 9100
       to_port     = 9100
       protocol    = "tcp"

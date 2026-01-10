@@ -38,7 +38,9 @@ jobs:
               "set -e",
               "sudo chown -R ssm-user:ssm-user /home/ssm-user/devops-bootcamp",
               "sudo -u ssm-user bash -l -c \"cd /home/ssm-user/devops-bootcamp && git fetch --all && git reset --hard origin/main\"",
-              "sudo -u ssm-user bash -l -c \"cd /home/ssm-user/devops-bootcamp/ansible && ansible-playbook playbooks/install-docker.yml && ansible-playbook playbooks/deploy-webapp.yml\""
+              "sudo -u ssm-user bash -l -c \"cd /home/ssm-user/devops-bootcamp/ansible && \
+                ansible-playbook playbooks/install-docker.yml && \
+                ansible-playbook playbooks/deploy-webapp.yml -e '\''web_domain=${{ vars.WEB_DOMAIN }} app_user_name=\"${{ vars.APP_USER_NAME }}\"'\''\""
             ]' \
             --timeout-seconds 900 \
             --query "Command.CommandId" \

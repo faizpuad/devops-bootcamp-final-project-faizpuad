@@ -20,17 +20,44 @@
   
   vars:
     webapp_dir: /home/ubuntu/webapp
+    ssl_dir: /home/ubuntu/webapp/ssl
     ecr_region: us-east-1
     ecr_uri: "{{ hostvars['localhost']['ecr_uri'] }}"
+    web_domain: "{{ web_domain | default('localhost') }}"
+    app_user_name: "{{ app_user_name | default('DevOps Student') }}"
 
   tasks:
     - name: Ensure webapp directory exists
       ansible.builtin.file:
-        path: "{{ webapp_dir }}"
+        path: "{{ item }}"
         state: directory
         owner: ubuntu
         group: ubuntu
         mode: '0755'
+      loop: 
+        - "{{ webapp_dir }}"
+        - "{{ ssl_dir }}"
+
+    - name: Generate Self-Signed Cert
+      ansible.builtin.command:
+        cmd: "openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout {{ ssl_dir }}/nginx.key -out {{ ssl_dir }}/nginx.crt -subj '/CN={{ web_domain }}'"
+        creates: "{{ ssl_dir }}/nginx.crt"
+
+    - name: Create Nginx Config
+      ansible.builtin.copy:
+        content: |
+          server {
+              listen 80;
+              listen 443 ssl;
+              server_name {{ web_domain }};
+              ssl_certificate /etc/nginx/certs/nginx.crt;
+              ssl_certificate_key /etc/nginx/certs/nginx.key;
+              location / {
+                  root /usr/share/nginx/html;
+                  index index.html;
+              }
+          }
+        dest: "{{ webapp_dir }}/default.conf"
 
     - name: Create docker-compose file
       ansible.builtin.copy:
@@ -40,6 +67,13 @@
               image: "{{ ecr_uri }}:latest"
               ports:
                 - "80:80"
+                - "443:443"
+              environment:
+                - USER_NAME={{ app_user_name }}
+              volumes:
+                - ./default.conf:/etc/nginx/conf.d/default.conf:ro
+                - ./ssl/nginx.crt:/etc/nginx/certs/nginx.crt:ro
+                - ./ssl/nginx.key:/etc/nginx/certs/nginx.key:ro
               restart: unless-stopped
         dest: "{{ webapp_dir }}/docker-compose.yml"
         owner: ubuntu
