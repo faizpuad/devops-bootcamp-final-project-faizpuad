@@ -34,13 +34,30 @@ jobs:
           echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
           echo "Ansible Controller Instance ID: $INSTANCE_ID"
 
+      - name: Ensure ssm-user and Permissions (Always Runs)
+        run: |
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "#!/bin/bash",
+              "if ! id -u ssm-user > /dev/null 2>&1; then",
+              "  sudo useradd -m -s /bin/bash ssm-user",
+              "  echo \"ssm-user:ssm-user\" | sudo chpasswd",
+              "  echo \"ssm-user ALL=(ALL) NOPASSWD:ALL\" | sudo tee /etc/sudoers.d/ssm-agent-users",
+              "fi",
+              "sudo mkdir -p /tmp/.ansible/tmp",
+              "sudo chown -R ssm-user:ssm-user /tmp/.ansible",
+              "sudo chown ssm-user:ssm-user /home/ssm-user"
+            ]'
+
       - name: Check if Ansible is installed
         id: check_ansible
         run: |
           CHECK_CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["which ansible || echo NOT_INSTALLED"]' \
+            --parameters 'commands=["command -v ansible || echo NOT_INSTALLED"]' \
             --query "Command.CommandId" \
             --output text)
           sleep 10
@@ -60,13 +77,6 @@ jobs:
             --parameters 'commands=[
               "#!/bin/bash",
               "set -e",
-              
-              "echo Ensuring ssm-user exists...",
-              "if ! id -u ssm-user > /dev/null 2>&1; then",
-              "  useradd -m -s /bin/bash ssm-user",
-              "  echo ssm-user created",
-              "fi",
-
               "cd /tmp",
               "sudo apt-get update -qq",
               "sudo apt-get install -y software-properties-common python3-pip curl unzip",
