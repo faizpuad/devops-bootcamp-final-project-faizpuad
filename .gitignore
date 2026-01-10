@@ -1,5 +1,6 @@
 *access*
 *.env
+env/
 .terraform
 .tfstate
 .tfstate.backup
@@ -10,3 +11,4 @@ temp/
 PLAYBOOK.md
 README.md
 thoughts/
+devops*.md
