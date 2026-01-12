@@ -1,6 +1,10 @@
 name: Deploy Monitoring Stack
 
 on:
+  workflow_run:
+    workflows: ["Deploy WebApp"]
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       deploy_tunnel:
@@ -14,6 +18,11 @@ env:
 
 jobs:
   deploy-monitoring:
+    if: >
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success')
+      ||
+      (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
 
     steps:

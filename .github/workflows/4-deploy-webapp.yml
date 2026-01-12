@@ -1,23 +1,28 @@
 name: Deploy WebApp
 
+
 on:
+  workflow_run:
+    workflows: ["ECR Build and Push"]
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       environment:
         description: 'Environment to deploy'
         required: false
         default: 'production'
-# on:
-#   workflow_run:
-#     workflows: ["ECR Build and Push"]
-#     types: [completed]
 
 env:
   AWS_REGION: ap-southeast-1
 
 jobs:
   deploy:
-    if: ${{ github.event.inputs.environment == 'production' }}
+    if: >
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success')
+      ||
+      (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
