@@ -1,3 +1,8 @@
+variable "aws_region" {
+  description = "AWS region for the infrastructure"
+  type        = string
+}
+
 variable "controller_instance_id" {
   description = "EC2 instance ID of Ansible Controller"
   type        = string

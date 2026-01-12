@@ -1,3 +1,13 @@
+resource "aws_ssm_parameter" "aws_region" {
+  name  = "/devops/aws-region"
+  type  = "String"
+  value = var.aws_region
+
+  tags = {
+    Project = "devops-bootcamp"
+  }
+}
+
 resource "aws_ssm_parameter" "controller_instance_id" {
   name  = "/devops/controller/instance-id"
   type  = "String"

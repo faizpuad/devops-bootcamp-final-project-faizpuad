@@ -258,6 +258,7 @@ module "ecr" {
 module "ssm" {
   source = "./modules/ssm"
 
+  aws_region             = data.aws_region.current.name
   controller_instance_id = module.ansible_controller.id
   web_instance_id        = module.web_server.id
   monitoring_instance_id = module.monitoring_server.id
