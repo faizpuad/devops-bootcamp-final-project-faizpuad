@@ -50,7 +50,7 @@ module "vpc" {
   name = "devops-vpc"
   cidr = var.vpc_cidr
 
-  azs             = ["us-east-1a"]
+  azs             = ["ap-southeast-1a"]
   public_subnets  = var.public_subnets
   private_subnets = var.private_subnets
 

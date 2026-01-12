@@ -5,7 +5,7 @@
   tasks:
     - name: Get ECR repository URI from SSM
       ansible.builtin.command:
-        cmd: aws ssm get-parameter --name /devops/ecr/webapp-repo-uri --query Parameter.Value --output text --region us-east-1
+        cmd: aws ssm get-parameter --name /devops/ecr/webapp-repo-uri --query Parameter.Value --output text --region ap-southeast-1
       register: ecr_uri_result
       changed_when: false
 
@@ -21,7 +21,7 @@
   vars:
     webapp_dir: /home/ubuntu/webapp
     ssl_dir: /home/ubuntu/webapp/ssl
-    ecr_region: us-east-1
+    ecr_region: ap-southeast-1
     ecr_uri: "{{ hostvars['localhost']['ecr_uri'] }}"
     web_domain: "{{ web_domain | default('localhost') }}"
     app_user_name: "{{ app_user_name | default('DevOps Student') }}"

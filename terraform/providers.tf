@@ -11,10 +11,10 @@ terraform {
   backend "s3" {
     bucket = "devops-bootcamp-terraform-faizpuad"
     key    = "terraform.tfstate"
-    region = "us-east-1"
+    region = "ap-southeast-1"
   }
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "ap-southeast-1"
 }
