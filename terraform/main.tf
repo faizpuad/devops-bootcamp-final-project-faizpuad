@@ -231,6 +231,9 @@ module "ecr" {
   repository_image_scan_on_push = true
   repository_force_delete       = true
 
+  # make image mutable to allow overwriting tags like 'latest'
+  repository_image_tag_mutability = "MUTABLE"
+  
   create_lifecycle_policy = true
 
   repository_lifecycle_policy = jsonencode({

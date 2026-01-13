@@ -31,7 +31,7 @@ Infrastructure as Code project demonstrating Terraform, Ansible, Docker, and mon
         |  | |Web Server| |  | |  Ansible   | | |
         |  | |10.0.0.5  | |  | | Controller | | |
         |  | |Port: 443 | |  | | 10.0.0.135 | | |
-        |  | |     9100 |<+--+-|            | | |
+        |  | |     9100 | |  | |            | | |
         |  | +----------+ |  | +------------+ | |
         |  |              |  |                | |
         |  |              |  | +------------+ | |
