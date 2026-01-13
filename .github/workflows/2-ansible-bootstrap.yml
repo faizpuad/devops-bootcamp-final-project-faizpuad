@@ -134,23 +134,40 @@ jobs:
           [
             "#!/bin/bash",
             "set -e",
+
+            "# Ensure home ownership is correct",
             "sudo chown ssm-user:ssm-user /home/ssm-user",
-            "cd /home/ssm-user",
-            "if [ -d devops-bootcamp/.git ]; then",
-            "  cd devops-bootcamp",
+
+            "# Run ALL git operations as ssm-user",
+            "sudo -u ssm-user bash -l -c '",
+            "  cd /home/ssm-user",
+            "  if [ -d devops-bootcamp/.git ]; then",
+            "    cd devops-bootcamp",
+            "    git fetch --all",
+            "    git reset --hard origin/main",
+            "  else",
+            "    git clone https://github.com/${{ github.repository }}.git devops-bootcamp",
+            "    cd devops-bootcamp",
+            "  fi",
+            "",
             "  git config --global --add safe.directory /home/ssm-user/devops-bootcamp",
-            "  git fetch --all && git reset --hard origin/main",
-            "else",
-            "  git clone https://github.com/${{ github.repository }}.git devops-bootcamp",
-            "  cd devops-bootcamp",
-            "  git config --global --add safe.directory /home/ssm-user/devops-bootcamp",
-            "fi",
+            "'",
+
+            "# Ensure final ownership (defensive, but safe)",
             "sudo chown -R ssm-user:ssm-user /home/ssm-user/devops-bootcamp",
-            "echo '✓ Repository permissions fixed'"
+
+            "echo '✓ Repository cloned/updated as ssm-user'"
           ]
           EOF
           )
-          CLONE_CMD=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" --parameters "{\"commands\": $COMMANDS_JSON}" --query "Command.CommandId" --output text)
+
+          CLONE_CMD=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "{\"commands\": $COMMANDS_JSON}" \
+            --query "Command.CommandId" \
+            --output text)
+
           sleep 15
 
       - name: Test Ansible Inventory (Ping)
