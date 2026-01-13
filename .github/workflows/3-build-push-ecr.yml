@@ -1,6 +1,10 @@
 name: ECR Build and Push
 
 on:
+  workflow_run:
+    workflows: ["Bootstrap Ansible Controller"]
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       environment:

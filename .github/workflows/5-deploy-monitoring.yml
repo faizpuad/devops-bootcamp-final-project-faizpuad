@@ -126,7 +126,7 @@ jobs:
           done
 
       - name: Deploy Cloudflare Tunnel
-        if: ${{ inputs.deploy_tunnel == true }}
+        if: ${{ inputs.deploy_tunnel == 'true' }}
         run: |
           TUNNEL_TOKEN="${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}"
 
