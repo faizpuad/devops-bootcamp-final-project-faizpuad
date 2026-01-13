@@ -1,14 +1,15 @@
 name: Deploy Monitoring Stack
 
+
 on:
   workflow_run:
-    workflows: ["Deploy WebApp"]
+    workflows: ["ECR Build and Push"]
     types:
       - completed
   workflow_dispatch:
     inputs:
-      deploy_tunnel:
-        description: 'Deploy Cloudflare Tunnel'
+      environment:
+        description: 'Environment to deploy'
         required: false
         default: 'production'
 

@@ -8,6 +8,7 @@ Infrastructure as Code project demonstrating Terraform, Ansible, Docker, and mon
 |---------|-----|-------------|
 | Web Application | [web.faizp.me](https://web.faizp.me) | Main web application (HTTPS) |
 | Monitoring | [monitoring.faizp.me](https://monitoring.faizp.me) | Grafana dashboards |
+| GitHub Repo | [devops-bootcamp-final-project-faizpuad](https://github.com/faizpuad/devops-bootcamp-final-project-faizpuad) | Repo for final devops project |
 
 ## Architecture
 
