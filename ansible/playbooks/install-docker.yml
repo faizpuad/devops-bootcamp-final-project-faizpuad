@@ -1,6 +1,6 @@
 ---
 - name: Install Docker on Target Servers
-  hosts: "{{ target_hosts | default('tag_Role_web:tag_Role_monitoring') }}"
+  hosts: "{{ target_hosts | default('tag_Role_web,tag_Role_monitoring') }}"
   become: yes
   gather_facts: yes
 
@@ -83,3 +83,6 @@
         name: ubuntu
         groups: docker
         append: yes
+
+    - name: Reset SSH connection to apply docker group
+      ansible.builtin.meta: reset_connection
