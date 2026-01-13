@@ -61,10 +61,12 @@ jobs:
       # # - name: Terraform Validate
       # #   run: terraform validate
 
-      # - name: Terraform Apply
-      #   run: terraform apply -auto-approve
-
-      - name: Terraform Destroy
+      - name: Terraform Apply
         run: |
-          terraform init -reconfigure
-          terraform destroy -auto-approve
+          terraform init -upgrade
+          terraform apply -auto-approve
+
+      # - name: Terraform Destroy
+      #   run: |
+      #     terraform init -upgrade
+      #     terraform destroy -auto-approve
