@@ -10,8 +10,7 @@ on:
       deploy_tunnel:
         description: 'Deploy Cloudflare Tunnel'
         required: false
-        default: 'true'
-        type: boolean
+        default: 'production'
 
 env:
   AWS_REGION: ap-southeast-1
@@ -126,7 +125,6 @@ jobs:
           done
 
       - name: Deploy Cloudflare Tunnel
-        if: ${{ inputs.deploy_tunnel == 'true' }}
         run: |
           TUNNEL_TOKEN="${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}"
 
